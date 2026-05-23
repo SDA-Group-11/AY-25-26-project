@@ -6,3 +6,5 @@
 - 2026/05/08: Created own's first draft of container level diagram
 - 2026/05/09: Meeting with group to discuss container diagram
 - 2026/05/13: Started drafting own's component level diagram
+- 2026/05/17: Meeting with group to discuss component diagram
+- 2026/05/23: Started drafting container diagram section in architecture document
