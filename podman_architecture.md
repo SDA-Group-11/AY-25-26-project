@@ -4,7 +4,7 @@
 
 ### Context diagram
 
-![Context diagram](images/Context_diagram.png)
+![Context diagram](media/C4_context.svg)
 
 ### System Boundary
 
@@ -33,7 +33,7 @@ When a command is issued, Podman activates and coordinates the various external 
 
 ## Container Level
 
-![Containter diagram](images/container_diagram.png)
+![Containter diagram](media/C4_container.svg)
 
 ### General Architecture
 
