@@ -13,7 +13,7 @@ workspace "Podman" "C4 diagrams (Levels 1-3) for Podman, a daemonless OCI contai
             tags "Podman"
 
             # ── L2: Container "Podman CLI" with L3 components ────────────
-            cli = container "Podman CLI" "Frontend command-line interface. Parses commands via Cobra and delegates lifecycle operations to libpod through the ABI bridge. One-shot process per invocation." "Go binary" {
+            cli = container "Podman CLI" "Frontend command-line interface. Parses commands via Cobra." "Go binary" {
                 tags "Internal"
 
                 entry = component "Process Entry & Root Command (CLI-C1)" "Process boot (reexec, podmansh shim, logging, syslog, terminal setup). Assembles the Cobra root and wires PersistentPreRunE/PostRunE. main.go, root.go, early_init_*.go." "Go package: cmd/podman" {
@@ -50,19 +50,19 @@ workspace "Podman" "C4 diagrams (Levels 1-3) for Podman, a daemonless OCI contai
             }
 
             # ── L2: Container "Podman REST API Service" ──────────────────
-            api = container "Podman REST API Service" "Long-running HTTP server started by 'podman system service'. Same podman binary in API mode. Exposes Docker-compatible (v1.40) and Podman-native libpod APIs. Typically activated via systemd socket activation." "Go binary, HTTP/JSON" {
+            api = container "Podman REST API Service" "HTTP server exposing Docker-compatible and Podman APIs." "Go binary, HTTP/JSON" {
                 tags "Internal"
             }
 
             # ── L2: Container "libpod" with L3 components ────────────────
-            libpod = container "libpod (Engine)" "Core container engine logic. Statically linked into the CLI and REST API binaries; not a separate process. Owns Runtime and all container/pod/volume lifecycle, OCI invocation, state persistence, locking, events, healthchecks." "Go library" {
+            libpod = container "libpod (Engine)" "Core container engine logic. Manages Runtime and all container/pod/volume lifecycle, OCI invocation, state persistence, locking, events, healthchecks and logging" "Go library" {
                 tags "Internal"
 
                 runtime = component "Runtime (LP-C1)" "Composition root. Owns the Runtime type and constructor NewRuntime. Initializes and holds State, OCIRuntime, storage.Store, libimage.Runtime, ContainerNetwork, lock.Manager, Eventer. Worker goroutine queue handles deferred work. Includes storageService, reset, and trivial helpers (driver, layers, linkmode) folded in." "Go: libpod (runtime.go and siblings)" {
                     tags "LibpodComponent" "LibpodCore"
                 }
 
-                containerComp = component "Container (LP-C2)" "The Container type and full behavior surface: lifecycle, exec, inspect, copy, commit, top, stat, log, graph, path resolution. Includes stats (formerly LP-C19). Convention: container_api.go = public locked verbs; container_internal*.go = unlocked helpers; runtime_ctr*.go = Runtime-side construction." "Go: libpod (~25 files)" {
+                containerComp = component "Container (LP-C2)" "Owns the Container type and full behavior surface: spec generation, filesystem configuration, checkpoints and logging." "Go: libpod (~25 files)" {
                     tags "LibpodComponent" "LibpodDomain"
                 }
 
@@ -78,15 +78,15 @@ workspace "Podman" "C4 diagrams (Levels 1-3) for Podman, a daemonless OCI contai
                     tags "LibpodComponent" "LibpodInfra"
                 }
 
-                ociRuntimeComp = component "OCI Runtime Adapter (LP-C6)" "The OCIRuntime interface wrapping crun/runc via conmon. ConmonOCIRuntime is the production implementation (oci_conmon_common.go:53). oci_missing.go is a stub preserving exit-file paths for dead containers." "Go: libpod (oci*.go)" {
+                ociRuntimeComp = component "OCI Runtime Adapter (LP-C6)" "OCIRuntime interface wrapping crun/runc via conmon." "Go: libpod (oci*.go)" {
                     tags "LibpodComponent" "LibpodExecution"
                 }
 
-                networkingComp = component "Networking (LP-C7)" "Container/Pod network lifecycle, port binding, pasta integration, rootless port forwarder, machine-mode shaping. No exported interface — methods on *Container plus Runtime-side helpers." "Go: libpod (networking_*.go)" {
+                networkingComp = component "Networking (LP-C7)" "Container/Pod network logic and configuration (port binding, pasta integration, rootless port forward)." "Go: libpod (networking_*.go)" {
                     tags "LibpodComponent" "LibpodExecution"
                 }
 
-                healthcheckComp = component "Healthcheck (LP-C8)" "Periodic health probes scheduled via systemd timers (no-systemd build variant exists)." "Go: libpod (healthcheck*.go)" {
+                healthcheckComp = component "Healthcheck (LP-C8)" "Periodic healthchecks scheduled via systemd timers." "Go: libpod (healthcheck*.go)" {
                     tags "LibpodComponent" "LibpodExecution"
                 }
 
@@ -98,7 +98,7 @@ workspace "Podman" "C4 diagrams (Levels 1-3) for Podman, a daemonless OCI contai
                     tags "LibpodComponent" "LibpodInfra"
                 }
 
-                logsComp = component "Logs (LP-C11)" "Container log file reader with reverse-reader for --tail." "Go: libpod/logs" {
+                logsComp = component "Logs (LP-C11)" "Container log file reader" "Go: libpod/logs" {
                     tags "LibpodComponent" "LibpodExecution"
                 }
 
@@ -128,7 +128,7 @@ workspace "Podman" "C4 diagrams (Levels 1-3) for Podman, a daemonless OCI contai
             }
 
             # ── L2: Container "State Database" ───────────────────────────
-            state = container "State Database" "Local SQLite database persisting containers, pods, volumes, exec sessions, and runtime metadata. Single-writer, file-backed. Sole selectable backend since Podman 6.0." "SQLite" {
+            state = container "State Database" "Local SQLite database persisting metadata about containers, pods, volumes, exec sessions and runtime." "SQLite" {
                 tags "Database"
             }
         }
