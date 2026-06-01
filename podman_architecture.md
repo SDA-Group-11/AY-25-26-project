@@ -53,12 +53,6 @@ Moreover, the **Podman CLI** and the **REST API Service** function as **Adapters
 
 Finally, to improve testability of the system, the **Humble Objects** ([ref1](https://martinfowler.com/bliki/HumbleObject.html), [ref2](https://maxim-gorin.medium.com/cleaner-code-better-tests-leveraging-humble-objects-for-better-architecture-134d30d70b2f)) architectural usage is evident in the delegation of hard-to-test execution tasks to specialized utilities like `conmon` and the various compatible **OCI runtimes**. Those act as the humble objects, as they handle the hard-to-test OS-level execution tasks. **Libpod** instead is treated as the stable and testable core.
 
-### SOLID Principles
-
-Podman’s container structure reveals some SOLID principles surfacing at C4's second level, namely the Single Responsibility Principle (SRP), Dependency Inversion Principle (DIP) and Common Closure Principle (CCP).
-
-Regarding the SRP, Podman delegates specialized tasks—such as networking to `Netavark` and monitoring to `conmon`, both external systems, creating architectural boundaries that prevent the propagation of changes to the core **libpod** logic. The core stability is reinforced by the DIP: **libpod** depends on the OCI Specification rather than a concrete implementations like `runc` or `crun`. Finally, the separation between the local **Podman CLI** and the **REST API Service** follows the CCP, dividing Podman-native entry points and compatibility entry points.
-
 
 ## Component Level
 
