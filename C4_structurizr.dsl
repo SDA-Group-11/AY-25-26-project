@@ -16,35 +16,35 @@ workspace "Podman" "C4 diagrams (Levels 1-3) for Podman, a daemonless OCI contai
             cli = container "Podman CLI" "Frontend command-line interface. Parses commands via Cobra." "Go binary" {
                 tags "Internal"
 
-                entry = component "Process Entry & Root Command (CLI-C1)" "Process boot (reexec, podmansh shim, logging, syslog, terminal setup). Assembles the Cobra root and wires PersistentPreRunE/PostRunE. main.go, root.go, early_init_*.go." "Go package: cmd/podman" {
+                entry = component "Process Entry & Root Command (CLI-C1)" "The entry point of the CLI process. It is used to initialise the application and assemble the root command from which all subcommands are reached." "Go package: cmd/podman" {
                     tags "CliComponent" "CliInfra"
                 }
 
-                registryComp = component "Command Registry & Engine Binding (CLI-C2)" "Owns the global Commands slice that every subpackage's init() appends to. Provides ContainerEngine()/ImageEngine() accessors. Selects ABIMode vs TunnelMode based on OS and build tags." "Go package: cmd/podman/registry" {
+                registryComp = component "Command Registry & Engine Binding (CLI-C2)" "A registry that holds all available commands. It is used to bind commands to the appropriate container or image engine depending on the execution mode." "Go package: cmd/podman/registry" {
                     tags "CliComponent" "CliInfra"
                 }
 
-                verbs = component "Per-Resource Verb Packages (CLI-C3)" "One Cobra subtree per resource (containers, pods, images, volumes, networks, secrets, manifest, artifact, kube, quadlet, farm, generate, healthcheck, system). Each verb file declares a cobra.Command and a RunE that calls registry.ContainerEngine().<Verb>(…)." "Go packages: cmd/podman/{containers,pods,images,…}" {
+                verbs = component "Per-Resource Verb Packages (CLI-C3)" "A collection of subcommands grouped by resource type. It is used to expose operations on containers, pods, images, volumes, networks, and other resources to the user." "Go packages: cmd/podman/{containers,pods,images,…}" {
                     tags "CliComponent" "CliVerbs"
                 }
 
-                helpers = component "Shared CLI Helpers (CLI-C4)" "Cross-cutting CLI plumbing: create/run flag sets, autocomplete helpers, Cobra arg validators, parse/inspect/diff helpers reused across verb packages." "Go packages: cmd/podman/{common,validate,parse,utils,inspect,diff}" {
+                helpers = component "Shared CLI Helpers (CLI-C4)" "A set of shared utilities for the CLI. It is used to provide common flag definitions, argument validation, and output formatting across all subcommands." "Go packages: cmd/podman/{common,validate,parse,utils,inspect,diff}" {
                     tags "CliComponent" "CliInfra"
                 }
 
-                serviceEntry = component "REST API Service Entry (CLI-C5)" "The 'podman system service' command. The only place under cmd/podman/ that holds a raw *libpod.Runtime — constructs one via infra.GetRuntime and hands it to pkg/api/server.NewServerWithSettings." "Go package: cmd/podman/system" {
+                serviceEntry = component "REST API Service Entry (CLI-C5)" "The subcommand responsible for starting the REST API server. It is used to initialise and hand off control to the HTTP server when the user runs the service command." "Go package: cmd/podman/system" {
                     tags "CliComponent" "CliInfra"
                 }
 
-                machineCmd = component "Machine VM Management (CLI-C6)" "Manages local virtual machines that host Podman on non-Linux hosts (init, start, stop, ssh, cp, …). Implementation lives in pkg/machine/." "Go package: cmd/podman/machine" {
+                machineCmd = component "Machine VM Management (CLI-C6)" "A subcommand group for managing virtual machines. It is used to create, start, stop, and interact with VMs that host Podman on non-Linux operating systems." "Go package: cmd/podman/machine" {
                     tags "CliComponent" "CliVerbs"
                 }
 
-                quadletCmd = component "Quadlet Command Surface (CLI-C7)" "Lifecycle of Quadlet unit files (install, list, print, remove). The generator binary itself is cmd/quadlet/ (separate)." "Go package: cmd/podman/quadlet" {
+                quadletCmd = component "Quadlet Command Surface (CLI-C7)" "A subcommand group for managing Quadlet unit files. It is used to install, list, print, and remove systemd unit files generated from container definitions." "Go package: cmd/podman/quadlet" {
                     tags "CliComponent" "CliVerbs"
                 }
 
-                completionCmd = component "Completion Command (CLI-C8)" "'podman completion' emits shell completion scripts. Distinct from the runtime autocomplete helpers in CLI-C4." "Go package: cmd/podman/completion" {
+                completionCmd = component "Completion Command (CLI-C8)" "A subcommand for generating shell completion scripts. It is used to emit completion definitions for supported shells so users can enable tab-completion for Podman commands." "Go package: cmd/podman/completion" {
                     tags "CliComponent" "CliInfra"
                 }
             }
@@ -58,71 +58,71 @@ workspace "Podman" "C4 diagrams (Levels 1-3) for Podman, a daemonless OCI contai
             libpod = container "libpod (Engine)" "Core container engine logic. Manages Runtime and all container/pod/volume lifecycle, OCI invocation, state persistence, locking, events, healthchecks and logging" "Go library" {
                 tags "Internal"
 
-                runtime = component "Runtime (LP-C1)" "Composition root. Owns the Runtime type and constructor NewRuntime. Initializes and holds State, OCIRuntime, storage.Store, libimage.Runtime, ContainerNetwork, lock.Manager, Eventer. Worker goroutine queue handles deferred work. Includes storageService, reset, and trivial helpers (driver, layers, linkmode) folded in." "Go: libpod (runtime.go and siblings)" {
+                runtime = component "Runtime (LP-C1)" "The central component of the engine. It is used to initialise and coordinate all other engine subsystems, and serves as the main entry point for container, pod, and volume operations." "Go: libpod (runtime.go and siblings)" {
                     tags "LibpodComponent" "LibpodCore"
                 }
 
-                containerComp = component "Container (LP-C2)" "Owns the Container type and full behavior surface: spec generation, filesystem configuration, checkpoints and logging." "Go: libpod (~25 files)" {
+                containerComp = component "Container (LP-C2)" "The component representing a single container. It is used to manage the full lifecycle of a container, including creation, execution, inspection, and removal." "Go: libpod (~25 files)" {
                     tags "LibpodComponent" "LibpodDomain"
                 }
 
-                podComp = component "Pod (LP-C3)" "The Pod type and operations. Group of containers sharing namespaces via an infra container." "Go: libpod (pod.go and siblings)" {
+                podComp = component "Pod (LP-C3)" "The component representing a pod. It is used to group and manage a set of containers that share namespaces and are operated together as a unit." "Go: libpod (pod.go and siblings)" {
                     tags "LibpodComponent" "LibpodDomain"
                 }
 
-                volumeComp = component "Volume (LP-C4)" "The Volume type and operations: GetVolume, LookupVolume, PruneVolumes, RemoveVolume." "Go: libpod (volume.go and siblings)" {
+                volumeComp = component "Volume (LP-C4)" "The component representing a volume. It is used to manage persistent storage that can be attached to containers." "Go: libpod (volume.go and siblings)" {
                     tags "LibpodComponent" "LibpodDomain"
                 }
 
-                stateComp = component "State Persistence (LP-C5)" "The State interface over the persistent store. SQLiteState is the sole shipped implementation; BoltDB code remains only for migration detection (BoltDB removed as a selectable backend in Podman 6.0)." "Go: libpod (state.go, sqlite_state.go)" {
+                stateComp = component "State Persistence (LP-C5)" "The component responsible for persisting engine state. It is used to store and retrieve metadata about containers, pods, volumes, and exec sessions across process invocations." "Go: libpod (state.go, sqlite_state.go)" {
                     tags "LibpodComponent" "LibpodInfra"
                 }
 
-                ociRuntimeComp = component "OCI Runtime Adapter (LP-C6)" "OCIRuntime interface wrapping crun/runc via conmon." "Go: libpod (oci*.go)" {
+                ociRuntimeComp = component "OCI Runtime Adapter (LP-C6)" "The component that abstracts the OCI runtime. It is used to delegate low-level container execution operations such as creation, start, kill, and attach to an external OCI-compliant runtime." "Go: libpod (oci*.go)" {
                     tags "LibpodComponent" "LibpodExecution"
                 }
 
-                networkingComp = component "Networking (LP-C7)" "Container/Pod network logic and configuration (port binding, pasta integration, rootless port forward)." "Go: libpod (networking_*.go)" {
+                networkingComp = component "Networking (LP-C7)" "The component responsible for container networking. It is used to configure and manage network interfaces, port bindings, and connectivity for containers and pods." "Go: libpod (networking_*.go)" {
                     tags "LibpodComponent" "LibpodExecution"
                 }
 
-                healthcheckComp = component "Healthcheck (LP-C8)" "Periodic healthchecks scheduled via systemd timers." "Go: libpod (healthcheck*.go)" {
+                healthcheckComp = component "Healthcheck (LP-C8)" "The component responsible for container health monitoring. It is used to periodically execute health probes against running containers and report their status." "Go: libpod (healthcheck*.go)" {
                     tags "LibpodComponent" "LibpodExecution"
                 }
 
-                eventsComp = component "Events (LP-C9)" "The Eventer interface with three backends: journald, logfile, null. Runtime holds the Eventer; components publish lifecycle events through it." "Go: libpod/events" {
+                eventsComp = component "Events (LP-C9)" "The component responsible for lifecycle event reporting. It is used to publish events when containers, pods, and volumes change state, allowing external consumers to observe engine activity." "Go: libpod/events" {
                     tags "LibpodComponent" "LibpodInfra"
                 }
 
-                lockComp = component "Locking (LP-C10)" "Multi-process lock abstraction. Manager allocates locks; Locker is the lock. Two backends: file-based and SHM (partly C). SHM is default." "Go: libpod/lock" {
+                lockComp = component "Locking (LP-C10)" "The component responsible for concurrency control. It is used to coordinate access to shared resources across multiple processes operating on the same engine state." "Go: libpod/lock" {
                     tags "LibpodComponent" "LibpodInfra"
                 }
 
-                logsComp = component "Logs (LP-C11)" "Container log file reader" "Go: libpod/logs" {
+                logsComp = component "Logs (LP-C11)" "The component responsible for container log access. It is used to read and stream log output produced by running or stopped containers." "Go: libpod/logs" {
                     tags "LibpodComponent" "LibpodExecution"
                 }
 
-                defineComp = component "Define — Shared Types (LP-C12)" "Container/pod state enums, healthcheck statuses, error vars, exec exit codes, inspect payload types, mount types. Imported by both libpod and cmd/podman." "Go: libpod/define" {
+                defineComp = component "Define — Shared Types (LP-C12)" "A package of shared type definitions. It is used to provide common enumerations, error variables, and data structures referenced across the engine and the CLI." "Go: libpod/define" {
                     tags "LibpodComponent" "LibpodInfra"
                 }
 
-                volumePluginComp = component "Volume Plugin Client (LP-C13)" "Speaks the Docker volume plugin protocol over Unix sockets so libpod can use third-party volume drivers." "Go: libpod/plugin" {
+                volumePluginComp = component "Volume Plugin Client (LP-C13)" "The component responsible for third-party volume driver integration. It is used to communicate with external volume plugins so that containers can use storage managed by those drivers." "Go: libpod/plugin" {
                     tags "LibpodComponent" "LibpodInfra"
                 }
 
-                shutdownComp = component "Process Shutdown (LP-C14)" "Process-wide named-handler registry firing on SIGINT/SIGTERM. Used by both libpod (store-close) and CLI (Stop())." "Go: libpod/shutdown" {
+                shutdownComp = component "Process Shutdown (LP-C14)" "The component responsible for graceful process termination. It is used to register and invoke cleanup handlers when the process receives a shutdown signal." "Go: libpod/shutdown" {
                     tags "LibpodComponent" "LibpodInfra"
                 }
 
-                namesComp = component "Names Generator (LP-C17)" "Random 'adjective_noun' name generator for containers and pods without an explicit name." "Go: libpod/namesgenerator" {
+                namesComp = component "Names Generator (LP-C17)" "The component responsible for automatic name assignment. It is used to generate a random human-readable name for containers and pods that are created without an explicit name." "Go: libpod/namesgenerator" {
                     tags "LibpodComponent" "LibpodInfra"
                 }
 
-                infoComp = component "System Info (LP-C20)" "Builds the 'podman info' report: host OS, storage, network backend, runtime versions, link mode." "Go: libpod (info*.go) + libpod/linkmode" {
+                infoComp = component "System Info (LP-C20)" "The component responsible for system introspection. It is used to collect and expose information about the host environment, storage configuration, and runtime versions." "Go: libpod (info*.go) + libpod/linkmode" {
                     tags "LibpodComponent" "LibpodInfra"
                 }
 
-                kubeComp = component "Kube & Service Containers (LP-C21)" "Kubernetes YAML generation/play backing logic (kube.go) and the Service-container concept (service.go) that wraps pod lifecycles created by 'podman kube play'." "Go: libpod (kube.go, service.go)" {
+                kubeComp = component "Kube & Service Containers (LP-C21)" "The component responsible for Kubernetes interoperability. It is used to generate Kubernetes YAML from running pods and to create containers and pods from Kubernetes manifest files." "Go: libpod (kube.go, service.go)" {
                     tags "LibpodComponent" "LibpodDomain"
                 }
             }
