@@ -1,4 +1,4 @@
-# Podman’s Architecture
+# Podman Software Architecture
 
 ## Context Level
 
