@@ -68,3 +68,39 @@ During the fourth week, the team met to divide the upcoming workload to streamli
 ## 3. Contribution to Report / Project
 
 My contribution this week focused on collaborative drafting to advance the C4 model section, helping ensure clear architectural visualization across the various levels.
+
+# Week 5 (2026-05-23 → 2026-05-29)
+
+## 1. Activities
+
+During the fifth week, the team met to divide the component-level analysis work and discuss the identification of design patterns within the codebase. After the meeting, I reviewed common software design patterns and their characteristics to support the analysis phase. I then examined my assigned portion of the codebase, identifying relevant design patterns, dependencies, and architectural relationships. Based on this analysis, I prepared an initial draft of the report section covering my assigned components.
+
+## 2. Effort
+
+- Team meeting for task allocation and planning: ~1 hour
+- Reviewing software design patterns: ~1 hour
+- Analyzing assigned components, dependencies, and architectural relationships; drafting report content: ~2.5 hours
+
+**Total:** ~4.5 hours
+
+## 3. Contribution to Report / Project
+
+My contribution during this week focused on the design-level analysis of assigned components. This included identifying design patterns, examining dependencies and interactions between modules, and drafting the corresponding section of the report.
+
+# Week 6 (2026-05-30 → 2026-06-05)
+
+## 1. Activities
+
+During the sixth week, the team met with the professor to review the current state of the project. Following the meeting, I updated the C4 diagrams to address the requested revisions and improve their consistency with the architectural analysis. Later in the week, the team held another meeting to monitor progress, coordinate the final stages of the work, and agree on how dependency-related information would be presented in the report.
+
+## 2. Effort
+
+- Meeting with the professor and discussion of required revisions: ~0.5 hours
+- Updating and refining C4 diagrams based on feedback: ~1 hour
+- Team coordination meeting regarding project completion and dependency documentation: ~1 hour
+
+**Total:** ~2.5 hours
+
+## 3. Contribution to Report / Project
+
+My contribution during this week focused on refining and finalizing C4 diagram.
