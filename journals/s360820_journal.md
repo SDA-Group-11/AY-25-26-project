@@ -11,3 +11,4 @@
 - 2026/05/28: Meeting with the professor for quick C4 feedback and then a disdussion for the assignement of new tasks to the team (~0.5 h)
 - 2026/05/28: First analysis and search of the design patterns used in the components assigned to me (~ 1 h)
 - 2026/05/29: Finished to write the first draft of my part about the design patterns (~ 4 h)
+- 2026/05/08: Read a good part of the reports. Had a team meeting to discuss finalizing the reports. Changed or added the tooling part in reports (~ 2 h 30 min)
