@@ -99,3 +99,9 @@ The Registry pattern solves the problem of multiple independent subsystems—suc
 ## Summary
 
 The architectural analysis of Podman reveals a complex architecture: the codebase isolates pure utilities to achieve low code dependency, while centralizing heavy lifecycle coordination within big modules like `container_internal_common.go` and `root.go`. Moreover, a historical analysis of knowledge dependencies exposes some invisible logical coupling; files with zero direct code imports—such as flag configuration sets and physical storage engines—frequently co-change due to feature-driven updates and interface alignment. To manage this complexity and enforce clean boundaries, Podman systematically leverages core design patterns. It utilizes the Command and Singleton patterns to safely bridge Cobra’s rigid CLI layer with a single, shared container engine instance, relies on Adapter and Factory patterns to isolate low-level OCI runtimes and name-generation dictionaries, and implements a specialized Registry pattern to ensure thread-safe, ordered subsystem cleanup during process termination.
+
+
+## Tooling
+
+- Goplantuml: automated UML generation from Go source code
+- Git: co-changes analysis

@@ -86,13 +86,10 @@ In terms of raw container execution performance, both tools are comparable sinc
 
 ## Tools used for analysis
 
-The three documents inside this repository have been written with the help of the following tools:
+All three documents inside this repository have been written with the help of the following tools:
 
-- Notion: task and people management.
-- Goplantuml: automated UML generation from Go source code.
-- PlantUML: initial tool for C4 diagramming
-- Structurizr: current tool for C4 diagramming
-- Git: co-changes analysis
+- Notion: task and people management
 - Antigravity: source code analysis
 - Claude code: source code analysis
+- Gemini: support for analysis and report preparation
 - NotebookLM: slides and document consultation

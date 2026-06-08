@@ -139,3 +139,9 @@ Yes, several architectural violations of the SOLID principles can be observed at
 3. **Interface Segregation Principle (ISP) - Partially Violated:**
    - Downstream infrastructure components and external client modules inherit or directly interact with the giant monolithic schemas of the `Container (LP-C2)` model. 
    - Instead of breaking interactions down into small, highly specialized contracts (such as an independent `Runnable` interface for execution engines or a `Lockable` structure for synchronization systems), modules depend on massive schemas packed with fields they do not require.
+
+
+## Tooling
+
+- PlantUML: initial tool for C4 diagramming
+- Structurizr: current tool for C4 diagramming
