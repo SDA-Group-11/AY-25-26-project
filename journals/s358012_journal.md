@@ -13,3 +13,4 @@
 - 2026/05/28: Meeting with professor for quick C4 feedback. Assignment of new tasks to the team (~0.5 hrs)
 - 2026/06/01: Meeting with group to discuss design analysis, task distribution for last week of work (~1 hr)
 - 2026/06/03: Created draft of final design analysis document by integrating everything made by each teammate (~2 hrs)
+- 2026/06/08: Meeting with group to discuss dependency document integration and project finalization. Added summary paragraph to design document (~1 hr)
