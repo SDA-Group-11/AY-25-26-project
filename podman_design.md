@@ -48,7 +48,8 @@ We choose to present here 5 patterns, each one found by a different member of th
 
 ### Command Pattern
 
-* Roles: * *Command:* `cobra.Command` struct with a `RunE` handler.
+Roles:
+* *Command:* `cobra.Command` struct with a `RunE` handler.
 * *Concrete Command:* Verb files (e.g., `completion.go`, `run.go`, `init.go`).
 * *Invoker:* Cobra's `Execute()` dispatcher.
 * *Receiver:* `registry.ContainerEngine()`.
@@ -57,7 +58,7 @@ This pattern solves the architectural challenge of decoupling CLI parsing from c
 
 ### Adapter Pattern
 
-* Roles:
+Roles:
 * *Abstraction Interface:* `OCIRuntime`.
 * *Adapters:* `ConmonOCIRuntime`, `oci_missing`.
 
@@ -65,7 +66,7 @@ The adapter pattern is used to separate the high-level container lifecycle state
 
 ### Factory Pattern
 
-* Roles:
+Roles:
 * *Factory:* `namesgenerator/names-generator.go`.
 * *Client:* `runtime.go` / `options.go`.
 
@@ -73,15 +74,15 @@ By encapsulating the randomized, dictionary-based name generation algorithm, thi
 
 ### Singleton Pattern
 
-* Roles:
+Roles:
 * *Singleton Instance:* Package-level `containerEngine` variables.
 * *Access Point:* `registry.ContainerEngine()`.
 
 The singleton pattern ensures that the heavy and expensive initialization of the container engine occurs exactly once, allowing that single instance to be safely shared across all verb packages during a single CLI invocation. An architectural alternative would be utilizing dependency injection via function parameters. While dependency injection successfully eliminates global state and creates highly testable, explicit code, it would require complex workarounds to thread the initialized engine through Cobra's rigid `RunE` function signatures, which do not natively support custom parameters.
 
-#### Pattern 5: Registry (Named Shutdown Handlers)
+#### Registry
 
-**Roles:**
+Roles:
 - Registry: package-level map `handlers` at `map[string]func(os.Signal) error`.
 - Registration: `Register(name, handler)` at `shutdown/handler.go:124-140` - adds a named handler and prepends it to `handlerOrder` (LIFO).
 - Deregistration: `Unregister(name)` at `shutdown/handler.go:143-166`.
@@ -89,9 +90,12 @@ The singleton pattern ensures that the heavy and expensive initialization of the
 - Inhibit/Uninhibit: `Inhibit()` / `Uninhibit()` at `:112-119` - RWMutex that temporarily blocks signal handling during critical sections.
 - Clients:
   - `runtime.go:206-213` registers the store-close handler.
-  - `container_internal.go` / `container_copy_common.go` call
-    `Inhibit()`/`Uninhibit()` during file copies.
+  - `container_internal.go` / `container_copy_common.go` call `Inhibit()`/`Uninhibit()` during file copies.
   - `healthcheck.go` calls `Inhibit()` during health execs.
   - `cmd/podman/root.go:151` calls `shutdown.Stop()`.
 
 The Registry pattern solves the problem of multiple independent subsystems—such as storage, containers, and health timers, requiring ordered cleanup upon process termination without needing to be directly aware of one another. Because Go's `signal.Notify` overrides previous handlers, a central registry guarantees that all registered cleanups execute reliably in a defined Last-In-First-Out (LIFO) order. Alternatively, the system could rely on a single, hardcoded shutdown function that explicitly calls all cleanup steps in a row. While this would offer explicit visual ordering, eliminate map lookup overhead, and simplify the code structure, it introduces severe architectural drawbacks. It creates tight coupling by forcing every new subsystem to modify the central function, introduces circular import risks, prevents dynamic addition or removal of handlers during operations like container copying, and makes isolated testing extremely difficult since the entire subsystem state must be constructed at once.
+
+## Summary
+
+The architectural analysis of Podman reveals a complex architecture: the codebase isolates pure utilities to achieve low code dependency, while centralizing heavy lifecycle coordination within big modules like `container_internal_common.go` and `root.go`. Moreover, a historical analysis of knowledge dependencies exposes some invisible logical coupling; files with zero direct code imports—such as flag configuration sets and physical storage engines—frequently co-change due to feature-driven updates and interface alignment. To manage this complexity and enforce clean boundaries, Podman systematically leverages core design patterns. It utilizes the Command and Singleton patterns to safely bridge Cobra’s rigid CLI layer with a single, shared container engine instance, relies on Adapter and Factory patterns to isolate low-level OCI runtimes and name-generation dictionaries, and implements a specialized Registry pattern to ensure thread-safe, ordered subsystem cleanup during process termination.
