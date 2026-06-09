@@ -24,12 +24,12 @@ Interaction with Podman does not occur through a persistent daemon, but rather t
 
 ### Ecosystem Interaction
 
-When a command is issued, Podman activates and coordinates the various external components of the ecosystem:
+When a command is issued or a workflow is executed, Podman activates and coordinates the various external components of the ecosystem:
 
-- **Image management and Registries:** for building (`podman build`), the system interfaces with external **Buildah** APIs and shared _containers/image_ libraries. It then communicates with external **Container Registries** (e.g., docker.io and quay.io registries) to _pull_ and _push_ OCI images. Podman also has the native capability to generate manifests for **Kubernetes** clusters.
-- **Container Lifecycle (conmon and OCI Runtime):** upon starting a container, Podman performs a double fork and instantiates an external monitoring process called `conmon`. It is then `conmon` itself that launches the OCI Runtime (`crun` / `runc`), passing it the configuration package (OCI bundle). Once the container has started, Podman shuts down, while `conmon` remains active in the background to monitor the process and communicate its status to `systemd` (which acts as the native supervisor of the Linux Host by managing the automatic startup and restart of containers through persistence, cgroups, and system logging).
-- **Networking and Security (Network Stack):** Podman doesn't directly manage networking. It delegates the creation of bridges and firewall rules to **Netavark**. In _rootless_ mode (without root privileges), it leverages external tools like **pasta** to forward traffic securely.
-- **Linux Host System:** the OCI Runtime translates the received commands into direct calls to native Linux kernel primitives (such as _Namespaces, Cgroups_, and _Seccomp_) to physically isolate the processes on the host system.
+- **Image Management, Registries, and Local Storage:** for image handling, the system communicates with external **Container Registries** to *pull* and *push* OCI images. Podman also interfaces directly with **Local Storage** to read and write image layers, container filesystems, and volume data.
+- **User Interfaces and CI/CD Systems:** interaction with the engine occurs at multiple levels. Users and developers run direct container commands via CLI, while DevOps engineers configure and trigger pipelines through **CI/CD Systems** to execute automated container workflows. Alternatively, the management of containers, images, pods, and volumes can be handled via **Podman Desktop**, a cross-platform GUI that communicates with the engine using a REST API.
+- **Container Lifecycle (conmon and systemd):** upon starting a container, Podman spawns a single external monitor process per container called `conmon`. This component supervises the OCI runtime, captures logs, tracks exit codes, and keeps the container alive after the CLI exits. In parallel, Podman integrates with **systemd** to schedule healthcheck timers and to activate the API service on-demand via socket activation.
+- **Networking (Container Network Backend):** Podman does not directly manage the network. Instead, it spawns dedicated network binaries to configure container networking, delegating these operations to the **Container Network Backend** by communicating via subprocesses using JSON over stdin/stdout.
 
 ## Container Level
 
@@ -126,7 +126,7 @@ For the component diagrams we have classified the components by color, in order 
 
 ### SOLID Principles Analysis (Level 3)
 
-Yes, several architectural violations of the SOLID principles can be observed at the component level (Level 3) for both Libpod and Podman CLI:
+Several architectural violations of the SOLID principles can be observed at the component level (Level 3) for both Libpod and Podman CLI:
 
 1. **Single Responsibility Principle (SRP) - Violated:**
    - **`Container (LP-C2)`** and **`Runtime (LP-C1)`** act as architectural "God Objects". Instead of strictly encapsulating core domain state machine models, `Container (LP-C2)` handles low-level infrastructural coordination, signaling direct commands to `Locking (LP-C10)` and interacting directly with `Logs (LP-C11)`. Any major change in how system logging streams operate or how memory locks are handled should not force a rebuild of the foundational domain entity blocks.
