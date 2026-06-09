@@ -189,6 +189,7 @@ workspace "Podman" "C4 diagrams (Levels 1-3) for Podman, a daemonless OCI contai
         podman.cli.entry          -> podman.cli.helpers          "Uses validators, parse, utils" "Go API"
         podman.cli.verbs          -> podman.cli.registryComp     "Obtains ContainerEngine() / ImageEngine() handles" "Go API"
         podman.cli.verbs          -> podman.cli.helpers          "Uses shared flag sets, autocomplete, inspect, diff" "Go API"
+        podman.cli.helpers        -> podman.cli.registryComp     "Imports registry for engine access in helpers" "Go import"
         podman.cli.serviceEntry   -> podman.cli.registryComp     "Registered as 'system service' subcommand" "Go init()"
         podman.cli.machineCmd     -> podman.cli.registryComp     "Registered as 'machine' subcommand subtree" "Go init()"
         podman.cli.quadletCmd     -> podman.cli.registryComp     "Registered as 'quadlet' subcommand subtree" "Go init()"
@@ -201,6 +202,8 @@ workspace "Podman" "C4 diagrams (Levels 1-3) for Podman, a daemonless OCI contai
         podman.cli.verbs        -> podman.libpod.defineComp   "Imports error vars and constants" "Go import"
         podman.cli.entry        -> podman.libpod.shutdownComp "Registers shutdown handlers; calls Stop()" "Go API"
         podman.cli.machineCmd   -> podman.libpod.eventsComp   "Imports event type constants" "Go import"
+        podman.cli.helpers      -> podman.libpod.defineComp   "Imports error vars and constants" "Go import"
+        podman.cli.helpers      -> podman.libpod.eventsComp   "Imports event type constants" "Go import"
 
         # ── REST API → libpod ────────────────────────────────────────────
         podman.api -> podman.libpod.runtime "Delegates lifecycle operations" "Go API (in-process, pkg/api/handlers)"
@@ -215,7 +218,6 @@ workspace "Podman" "C4 diagrams (Levels 1-3) for Podman, a daemonless OCI contai
         podman.libpod.runtime -> podman.libpod.eventsComp      "Writes lifecycle events" "Go API (events.Eventer)"
         podman.libpod.runtime -> podman.libpod.shutdownComp    "Registers store-close handler" "Go API"
         podman.libpod.runtime -> podman.libpod.healthcheckComp "Entry point Runtime.HealthCheck — delegates to Container" "Go API"
-        podman.libpod.runtime -> podman.libpod.networkingComp  "Sets up pod-level network namespaces" "Go API"
         podman.libpod.runtime -> podman.libpod.namesComp       "Generates names for unnamed containers/pods" "Go API"
         podman.libpod.runtime -> podman.libpod.infoComp        "Builds 'podman info' report" "Go API"
         podman.libpod.runtime -> podman.libpod.kubeComp        "Backs 'kube generate' and 'kube play' operations" "Go API"
@@ -236,12 +238,18 @@ workspace "Podman" "C4 diagrams (Levels 1-3) for Podman, a daemonless OCI contai
         podman.libpod.podComp -> podman.libpod.stateComp     "Persists pod state" "Go API"
         podman.libpod.podComp -> podman.libpod.lockComp      "Locks before state access" "Go API"
         podman.libpod.podComp -> podman.libpod.eventsComp    "Publishes lifecycle events" "Go API"
+        podman.libpod.podComp -> podman.libpod.defineComp    "Uses shared types and error vars" "Go import"
 
         podman.libpod.volumeComp -> podman.libpod.stateComp        "Persists volume metadata" "Go API"
         podman.libpod.volumeComp -> podman.libpod.volumePluginComp "Delegates to plugin driver when configured" "Go API"
+        podman.libpod.volumeComp -> podman.libpod.lockComp         "Locks before state access" "Go API"
+        podman.libpod.volumeComp -> podman.libpod.eventsComp       "Publishes lifecycle events" "Go API"
+        podman.libpod.volumeComp -> podman.libpod.defineComp       "Uses shared types and error vars" "Go import"
 
-        podman.libpod.kubeComp -> podman.libpod.podComp       "Creates pods from YAML manifests" "Go API"
-        podman.libpod.kubeComp -> podman.libpod.containerComp "Creates service containers wrapping pod lifecycles" "Go API"
+        podman.libpod.kubeComp -> podman.libpod.podComp       "Creates pods from YAML manifests (kube play)" "Go API"
+        podman.libpod.kubeComp -> podman.libpod.containerComp "Reads container state for kube generate" "Go API"
+        podman.libpod.containerComp -> podman.libpod.kubeComp "Calls service container lifecycle methods" "Go API"
+        podman.libpod.podComp -> podman.libpod.kubeComp       "Calls service container start/stop coordination" "Go API"
 
         # ── libpod components → State Database container ────────────────
         podman.libpod.stateComp -> podman.state "Reads and writes persisted state" "SQL (modernc.org/sqlite, CGO-free)"

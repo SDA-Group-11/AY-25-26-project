@@ -2,45 +2,61 @@
 
 ## Code Dependencies
 
-Code dependencies were evaluated statically by inspecting `import` statements across various Podman modules, encompassing both the Command Line Interface (CLI) surface and the `libpod` backend runtime engine.
+### Methodology
 
-### Highest Code Dependencies
+Code dependencies were extracted through static analysis of Go `import` statements across all files in `cmd/podman/` (CLI-C1 through CLI-C8) and `libpod/` (LP-C1 through LP-C21). Each import was classified into three buckets: in-scope (imports between analyzed components), out-of-scope repository (imports from other Podman packages such as `pkg/`), and external (third-party libraries and Go standard library). This classification enables reasoning about which coupling is architecturally deliberate versus incidental.
 
-Files with the highest number of imports generally serve as major initialization hubs, centralized engines, or core shared-utility aggregators. The 4 files with the most dependencies were found to be:
+### Dependency Graph Structure
 
-* `libpod/container_internal_common.go` (59 imports): It acts as the internal helper dumping ground for shared container operations. It must coordinate lock state, systemd integration, CNI/Netavark networking, container storage layers, and journald events.
-* `libpod/container_internal.go` (52 imports): Coordination file managing container execution states, mount logic, and process teardown.
-* `libpod/runtime.go` (38 imports): This file acts as the centralized engine facade responsible for initializing the entire daemonless lifecycle. It coordinates the abstract state backend, rootless storage, process discovery, and synchronous event forwarder channels.
-* `cmd/podman/root.go` (26 imports): Serving as the process bootstrap for every Podman invocation, it initializes logging, signal handling, SSH mode, credential helpers, and storage. Its breadth of concerns makes it the single wiring point for the entire CLI layer.
+The full dependency graph is organized into four color-coded tiers that enforce a strict downward-only dependency direction. Blue nodes represent the CLI layer (CLI-C1 through CLI-C8), forming the user-facing command surface. Orange nodes represent the Domain Model (LP-C1 through LP-C4, LP-C21), containing business objects that encapsulate container, pod, and volume lifecycle logic. Green nodes represent the Infrastructure tier (LP-C5 through LP-C11), providing pluggable backend services. Grey nodes represent the Foundation tier (LP-C12 through LP-C20), consisting of pure leaf packages with zero in-scope upstream dependencies.
 
-### Lowest Code Dependencies
+The CLI layer accesses the engine exclusively through lightweight leaf packages: LP-C12 (Define) for error constants and state enums, LP-C9 (Events) for event type definitions, and LP-C14 (Shutdown) for signal handling. CLI components never import the core domain models directly; this boundary is maintained through the out-of-scope `pkg/domain/entities` interface layer.
 
-Files with minimal imports are intentionally isolated to maintain stability, enforce clean boundaries, or act as simple delegators. The 4 files with the least dependencies were found to be:
+Within the Domain Model tier, LP-C1 (Runtime) acts as the architectural hub, composing all infrastructure components through struct fields. LP-C2 (Container), the largest component at approximately 13,400 lines across 25 files, consumes the widest set of infrastructure services: events, locking, shutdown, and logs. LP-C3 (Pod) and LP-C4 (Volume) follow narrower patterns.
 
-* `libpod/namesgenerator/names-generator.go` (2 imports): It acts as a pure, decoupled utility component dedicated exclusively to resource identification. It operates completely isolated from the container lifecycle, leveraging only primitive language features to combine deterministic dictionaries and resolve naming omissions without introducing system or third-party dependencies.
-* `cmd/podman/completion/completion.go` (2 imports): The completion command does exactly one thing: call Cobra’s built-in `GenBashCompletion` / `GenZshCompletion` / `GenFishCompletion`. It needs only `github.com/spf13/cobra` (external) and `cmd/podman/registry` (internal, to register itself). No domain logic, no flag sets, no I/O beyond stdout. This is by design, shell completion scripts must be stable and reproducible, so the command is intentionally isolated from the rest of the engine.
-* `cmd/podman/machine/stop.go` (3 imports): `stop.go` is a thin verb that delegates entirely to `shim.Stop()`; `quadlet.go` is merely the parent command definition that registers the subtree.
-* `libpod/oci.go` (4 imports): Defines the `OCIRuntime` interface. To preserve a clean boundary, it only imports minimum data types (like OCI specs and resize structs).
+The Infrastructure tier depends downward on Leaf Utilities but never upward on domain models, preserving substitutability. LP-C9 (Events) has zero upstream libpod dependencies, making it self-contained with three interchangeable backends (journald, logfile, null). LP-C12 (Define) is the most imported package in the codebase with 114 importers, serving as the lingua franca of shared types. LP-C14 (Shutdown) demonstrates cross-layer reuse: both CLI-C1 and engine components LP-C1, LP-C2, and LP-C8 import it because signal handling is inherently process-global.
+
+### Highest and Lowest Dependency Files
+
+At the extremes of the dependency spectrum, `container_internal_common.go` within LP-C2 holds 59 imports, reflecting its role as the coordination point for lock state, systemd integration, networking, storage layers, and event emission. Similarly, `container_internal.go` (52 imports) and `runtime.go` (38 imports) serve as major lifecycle hubs within LP-C2 and LP-C1 respectively. In the CLI layer, `root.go` (CLI-C1) reaches 26 imports as it orchestrates engine creation, profiling, error formatting, and signal handling for every Podman invocation.
+
+At the opposite end, `namesgenerator/names-generator.go` (LP-C17) requires only 2 standard library imports, and `completion/completion.go` (CLI-C8) requires only 2 imports total. These minimally-coupled files are intentionally isolated: the names generator is a pure algorithmic utility, while the completion command delegates entirely to Cobra's built-in shell script generators. Similarly, `oci.go` (LP-C6) imports only 4 packages to define the `OCIRuntime` interface, preserving a clean abstraction boundary free of implementation details.
+
+The full dependency graph and the simplified layered view are presented below. The first captures every in-scope import edge with arrows from importer to importee. The second collapses components into their architectural tiers, annotating importer counts to show load distribution.
+
+![Full Code Dependency Graph](full_code.png)
+
+![Simplified Layered View](simplified.png)
 
 ## Knowledge Dependencies
 
-Knowledge dependencies were extracted via commit history to identify implicit logical coupling. Knowledge dependencies were computed using `git log` to identify commits that touch two files simultaneously. Several notable inconsistencies exist where files frequently change together despite having few or zero direct code dependencies.
+### Methodology
 
-### `common/create_opts.go` / verb files:
+Knowledge dependencies were extracted from git commit history using `git log --no-merges --since="2023-01-01" --name-only` over a 2.5-year window (January 2023 to June 2026), covering 1,152 commits. Ten bulk commits touching more than 50 files were excluded. A co-change pair was recorded whenever two files appeared in the same commit; only pairs with 5 or more co-occurrences were retained, yielding 151 significant pairs.
 
-`common/create_opts.go` defines the shared flag sets (e.g. `--name`, `--volume`, `--network`) reused by `containers/run.go`, `containers/create.go`, and others. These verb files do not import `create_opts.go` directly; they both import `common`, but have no direct import edge between each other. Despite this, they co-change ~12 times because every new container feature (a new flag) requires updating `create_opts.go` and the corresponding `RunE` in the verb file within the same commit. This is feature-driven logical coupling invisible to the import graph: the compiler does not enforce it, but developers know they must touch both files together.
+### Interpreting the Ghost Arrows
 
-### `options.go` / `sqlite_state.go`
+The diagram below shows exclusively those pairs where files co-change frequently despite having no direct Go import between them. The dashed red edges represent "ghost arrows": evolutionary coupling that the compiler cannot enforce and that static import analysis cannot detect. These indicate implicit contracts between components that could break silently if one side is modified without the other.
 
-There are no code dependencies between these two files as the functional options file is strictly isolated at the compiler level from the physical storage engine implementations. Yet, there is high logical coupling because any newly introduced user configuration flag or lifecycle parameter that needs to persist across reboots requires a dual modification within the same commit. Specifically, `options.go` must accept and validate the new option, while `sqlite_state.go` must simultaneously update its relational SQL tables to store it.
+![Knowledge Dependencies — Ghost Arrows](knowledge.png)
 
-### `machine/init.go` / `machine/start.go`
+### Key Findings
 
-`start.go` does not import `init.go`, yet they have a 100% co-change ratio from `init`'s perspective. `init` often introduces flags that `start` must handle, establishing tight logical coupling.
+The dominant pattern is the LP-C2 to LP-C1 coupling (18 co-changes between `container_internal_common.go` and `options.go`). Every new container feature requires a three-file pipeline: a configuration field in `container_config.go` (LP-C2), a corresponding functional option in `options.go` (LP-C1), and implementation logic in `container_internal_common.go` (LP-C2). The compiler enforces none of these co-modifications; only developer discipline and code review prevent drift between the configuration schema and its consumers.
 
-### `oci_missing.go` / `runtime_ctr.go`
-There are no code dependencies between the 2 files, yet they have 5 co-changes `oci_missing.go` is essentially a tiny stub implementation of the `OCIRuntime` interface (used for dead containers where exit files need preservation). When `runtime_ctr.go` or the interface definition in `oci.go` changes (e.g., adding features or changing method signatures), developers are forced to update the stub implementation in `oci_missing.go` to keep the codebase compiling.
+The LP-C2 to LP-C6 coupling (10 co-changes) reveals the delegation contract between container lifecycle and the OCI runtime adapter. When `container_internal_common.go` changes how it invokes process management, `oci_conmon_common.go` must adapt accordingly. The OCIRuntime interface (52 methods) is the formal contract, but behavioral changes that preserve method signatures still require synchronized updates to both sides.
 
+The cross-layer ghost arrows from CLI-C1 and CLI-C4 to LP-C1 (9 and 7 co-changes respectively) expose the "full-stack feature" pattern: adding a new CLI flag in `root.go` or `common/create.go` necessitates a corresponding runtime option in `options.go`. This coupling spans the entire architectural stack from CLI surface to engine configuration, representing the longest co-change chain in the system.
+
+LP-C21 (Kube) provides an instructive case. It has no import relationship with LP-C2 or LP-C7, yet co-changes 7 and 6 times with them respectively. This occurs because `kube.go` translates container and network state into Kubernetes YAML representations; every field addition to a container or network configuration must be mirrored in the kube translation layer. This "translation layer" coupling is a known maintenance burden in systems that maintain multiple serialization formats of the same domain model.
+
+The LP-C12 to LP-C20 coupling (7 co-changes) represents shared schema evolution: `define/info.go` declares the system information struct types that `info.go` (LP-C20) populates. When new system attributes are exposed, both the type definition and its population logic must change together, despite residing in separate packages with no bidirectional import.
+
+Finally, the CLI-C6 (Machine) subsystem contains the densest intra-component co-change cluster in the entire codebase: 63 of the 151 significant pairs (42%) involve machine files, with pairs such as `init.go`/`set.go` reaching 11 co-changes. This density reflects the heavy API stabilization refactoring during the Podman 5.0 development cycle, where the machine subsystem's interface underwent rapid iteration that forced synchronized modifications across all verb files.
+
+### Architectural Implications
+
+The knowledge dependency analysis reveals that Podman's actual coupling topology is substantially denser than what the code dependency graph alone suggests. The ghost arrows identify three primary risk categories: feature pipelines spanning multiple components without compiler enforcement (LP-C2/LP-C1), delegation contracts where behavioral changes propagate without signature changes (LP-C2/LP-C6), and translation layers that must mirror upstream domain evolution (LP-C21/LP-C2/LP-C7). Automated co-change detection tooling or architectural fitness functions would help catch such drift before it manifests as runtime failures.
 
 ## Design Patterns
 
