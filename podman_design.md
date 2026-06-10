@@ -24,9 +24,9 @@ At the opposite end, `namesgenerator/names-generator.go` (LP-C17) requires only 
 
 The full dependency graph and the simplified layered view are presented below. The first captures every in-scope import edge with arrows from importer to importee. The second collapses components into their architectural tiers, annotating importer counts to show load distribution.
 
-![Full Code Dependency Graph](full_code.png)
+![Full Code Dependency Graph](media/full_code.png)
 
-![Simplified Layered View](simplified.png)
+![Simplified Layered View](media/simplified.png)
 
 ## Knowledge Dependencies
 
@@ -38,7 +38,7 @@ Knowledge dependencies were extracted from git commit history using `git log --n
 
 The diagram below shows exclusively those pairs where files co-change frequently despite having no direct Go import between them. The dashed red edges represent "ghost arrows": evolutionary coupling that the compiler cannot enforce and that static import analysis cannot detect. These indicate implicit contracts between components that could break silently if one side is modified without the other.
 
-![Knowledge Dependencies — Ghost Arrows](knowledge.png)
+![Knowledge Dependencies — Ghost Arrows](media/knowledge.png)
 
 ### Key Findings
 
